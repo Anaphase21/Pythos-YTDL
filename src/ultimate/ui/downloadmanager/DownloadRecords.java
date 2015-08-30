@@ -27,166 +27,106 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import properties.AppProperties;
+import java.util.prefs.Preferences;
+import java.util.prefs.BackingStoreException;
 
 /**
  *
  * @author Anaphase21
  */
 public class DownloadRecords{
-    public static String fullFileName = "downloads.josh";;
-    public static HashMap<String, ArrayList> downloadRecords;
+    public static HashMap<String, ArrayList<String>> downloadRecords;
     public static String downloadDirectory;
+    public static Long[] creationTimes;
+    
     public DownloadRecords(){
         
     }
     
     public static void openDownloadRecords(){
-        DataInputStream inputStream = null;
-        ArrayList<String> list = new ArrayList(60);
-        downloadRecords = new HashMap(15);
-        String title = null;
-        String url = null;
-        String path = null;
-        long fileSize = 0;
-        long downloaded = 0;
-        File file = new File(AppProperties.curDirectory+fullFileName);
+        ArrayList<String> list = null;
+        downloadRecords = new HashMap<>(20);
+        Preferences downloads = Preferences.userRoot().node("pythos/downloads");//.node("properties.AppProperties.class");
+        Preferences dwl = null;
         try{
-            inputStream = new DataInputStream(new FileInputStream(file));
-            while(true){
-                title = inputStream.readUTF();
-                url = inputStream.readUTF();
-                path = inputStream.readUTF();
-                fileSize = inputStream.readLong();
-                downloaded = inputStream.readLong();
+            String[] children = downloads.childrenNames();
+            creationTimes = new Long[children.length];
+            String title = null;
+            String url = null;
+            String path = null;
+            String trunc = null;
+            long creationTime = 0;
+            long fileSize = 0;
+            long downloaded = 0;
+            ArrayList<Long> times = new ArrayList<>(30);
+            for(String child : children){
+                dwl = Preferences.userRoot().node("pythos").node("downloads").node(child);
+                title = dwl.get("title", " ");
+                url = dwl.get("url", " ");
+                path = dwl.get("path", " ");
+                trunc = dwl.get("trunc", " ");
+                creationTime = dwl.getLong("creationTime", 0);
+                fileSize = dwl.getLong("size", 0);
+                downloaded = dwl.getLong("downloaded", 0);
+                list = new ArrayList<>(7);
                 list.add(url);
                 list.add(path);
+                list.add(trunc);
+                list.add(String.valueOf(creationTime));
                 list.add(String.valueOf(fileSize));
                 list.add(String.valueOf(downloaded));
                 downloadRecords.put(title, list);
+                times.add(creationTime);
             }
-        }catch(EOFException eof){
-        }
-        catch(IOException ioe){
-            try{
-                if(inputStream != null){
-                    inputStream.close();
-                }
-            }catch(IOException ioee){
-                
-                
-            }
-            JOptionPane.showMessageDialog(null, ioe.toString()+"\nCouldn't read", "Error", JOptionPane.ERROR_MESSAGE);
+            creationTimes = times.toArray(creationTimes);
+            java.util.Arrays.sort(creationTimes);
+        }catch(BackingStoreException bse){
+            
         }
     }
     
-    public static void saveDownload(String title, String url, String path, long fileSize, long downloaded){
-        DataOutputStream dout = null;
-        DataInputStream inputStream = null; 
-        try{
-            File file = new File(AppProperties.curDirectory+fullFileName);
-            if(!file.exists()){
-                file.createNewFile();
-            }
-            dout = new DataOutputStream(new FileOutputStream(file, true));
-            dout.writeUTF(title);
-            dout.writeUTF(url);
-            dout.writeUTF(path);
-            dout.writeLong(fileSize);
-            dout.writeLong(downloaded);
-            if(inputStream != null){
-                inputStream.close();
-            }
-            dout.close();
-        }catch(IOException ioe){
-        }
+    public static void saveDownload(String title, String url, String path, String trunc, long creationTime, long fileSize, long downloaded){
+        Preferences downloads = Preferences.userRoot().node("pythos").node("downloads").node(trunc);
+        downloads.put("title", title);
+        downloads.put("url", url);
+        downloads.put("path", path);
+        downloads.put("trunc", trunc);
+        downloads.putLong("creationtime", creationTime);
+        downloads.putLong("size", fileSize);
+        downloads.putLong("downloaded", downloaded);
     }
     
-    public static void deleteRecord(String title, String url, String path, long downl, long size){
-        DataInputStream din = null;
-        DataOutputStream dout = null;
-        File file = new File(AppProperties.curDirectory+fullFileName);
-        File newFile = null;
-        String titl = null;
-        String urlthis = null;
-        String paththis = null;
-        long downloaded = 0;
-        long fileSize = 0;
-        try{
-            if(!file.exists()){
-                return;
-            }
-            newFile = new File(AppProperties.curDirectory+fullFileName+".bak");
-            din = new DataInputStream(new FileInputStream(file));
-            dout = new DataOutputStream(new FileOutputStream(newFile));
-            while(true){
-                titl = din.readUTF();
-                urlthis = din.readUTF();
-                paththis = din.readUTF();
-                fileSize = din.readLong();
-                downloaded = din.readLong();
-                if(!((downloaded == downl) && (titl.equals(title)) && (fileSize == size) &&(urlthis.equals(url)) && (paththis.equals(path)))){
-                    dout.writeUTF(titl);
-                    dout.writeUTF(urlthis);
-                    dout.writeUTF(paththis);
-                    dout.writeLong(fileSize);
-                    dout.writeLong(downloaded);
-                }
-            }
-        }catch(IOException ioe){
-            try{
-                if(din != null){
-                    din.close();
-                }
-                if(dout != null){
-                    dout.close();
-                }
-                boolean deleted = (new File(AppProperties.curDirectory+fullFileName)).delete();
-               if(deleted){
-                   if(newFile != null){
-                        newFile.renameTo(file);
-                   }
-               }
-            }catch(IOException ioe2){ 
-        }
-    }
-    }
-    
-    public static void saveDownloadsFilePath(){
-        if(AppProperties.curDirectory == null){
+    public static void deleteRecord(String title, String path){
+        if(title == null){
             return;
         }
-        DataOutputStream dout = null;
+        String titl = null;
+        String pathis = null;
+        Preferences downloads = Preferences.userRoot().node("pythos/downloads");
+        Preferences dwl = null;
         try{
-            dout = new DataOutputStream(new FileOutputStream(new File(System.getProperty("user.home")+File.separator+"rec")));
-            dout.writeUTF(AppProperties.curDirectory);
-            dout.close();
-        }catch(IOException ioe){
-            if(dout != null){
-                try{
-                    dout.close();
-                }catch(IOException ioe2){
-                    
+            String[] children = downloads.childrenNames();
+            for(String node : children){
+                dwl = Preferences.userRoot().node("pythos/downloads").node(node);
+                titl = dwl.get("title", " ");
+                pathis = dwl.get("path", " ");
+                if((titl.equals(title))&&(pathis.equals(path))){
+                    dwl.removeNode();
                 }
             }
+        }catch(BackingStoreException bse){
+            System.out.print(bse.toString());
         }
     }
     
-    public static void openDownloadsFilepath(){
-        DataInputStream din = null;
-        try{
-            din = new DataInputStream(new FileInputStream(new File(System.getProperty("user.home")+File.separator+"rec")));
-            AppProperties.curDirectory = din.readUTF();
-                        JOptionPane.showMessageDialog(null, AppProperties.curDirectory+": prop", "Error", JOptionPane.ERROR_MESSAGE);
-            din.close();
-        }catch(IOException ioe){
-            JOptionPane.showMessageDialog(null, ioe.toString()+" "+AppProperties.curDirectory+":error", "Error", JOptionPane.ERROR_MESSAGE);
-            if(din != null){
-                try{
-                    din.close();
-                }catch(IOException ioe2){
-                    
-                }
-            }
-        }
+    public static void saveDirectory(String directory){
+        Preferences dir = Preferences.userRoot().node("pythos/directory");
+        dir.put("dir", directory);
     }
+    
+    public static void openDirectory(){
+        Preferences dir = Preferences.userRoot().node("pythos/directory");
+        AppProperties.curDirectory = dir.get("dir", null);
+    }
+        
 }
