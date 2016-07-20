@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Anaphase21
+ * Copyright (C) 2016 Anaphase21
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,6 @@ public class VideoPropertiesPanel extends JPanel implements MouseListener{
     public void setComponents(){
         properties = new JLabel(VideoPropertiesPanel.IDLE_START+videoProperties.substring(videoProperties.indexOf("]")+1)+VideoPropertiesPanel.IDLE_END);
         properties.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        //properties.setMaximumSize(new Dimension(20, 40));
         icon = new JLabel(thumbnail);
         add(icon);
         add(Box.createRigidArea(new Dimension(10, 0)));
