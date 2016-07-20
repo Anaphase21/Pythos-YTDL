@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Anaphase21
+ * Copyright (C) 2016 Anaphase21
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,16 +16,8 @@
  */
 package ultimate.ui.downloadmanager;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.util.HashMap;
 import java.util.ArrayList;
-import javax.swing.JOptionPane;
 import properties.AppProperties;
 import java.util.prefs.Preferences;
 import java.util.prefs.BackingStoreException;
@@ -37,7 +29,6 @@ import java.util.prefs.BackingStoreException;
 public class DownloadRecords{
     public static HashMap<String, ArrayList<String>> downloadRecords;
     public static String downloadDirectory;
-    public static Long[] creationTimes;
     
     public DownloadRecords(){
         
@@ -47,52 +38,56 @@ public class DownloadRecords{
         ArrayList<String> list = null;
         downloadRecords = new HashMap<>(20);
         Preferences downloads = Preferences.userRoot().node("pythos/downloads");//.node("properties.AppProperties.class");
-        Preferences dwl = null;
         try{
             String[] children = downloads.childrenNames();
-            creationTimes = new Long[children.length];
             String title = null;
             String url = null;
             String path = null;
-            String trunc = null;
-            long creationTime = 0;
+            String id = null;
+            String resolution = null;
+            long time = 0;
             long fileSize = 0;
             long downloaded = 0;
-            ArrayList<Long> times = new ArrayList<>(30);
             for(String child : children){
-                dwl = Preferences.userRoot().node("pythos").node("downloads").node(child);
-                title = dwl.get("title", " ");
-                url = dwl.get("url", " ");
-                path = dwl.get("path", " ");
-                trunc = dwl.get("trunc", " ");
-                creationTime = dwl.getLong("creationTime", 0);
-                fileSize = dwl.getLong("size", 0);
-                downloaded = dwl.getLong("downloaded", 0);
+                downloads = Preferences.userRoot().node("pythos/downloads").node(child);
+                title = downloads.get("title", " ");
+                url = downloads.get("url", " ");
+                path = downloads.get("path", " ");
+                time = downloads.getLong("time", 0);
+                fileSize = downloads.getLong("size", 0);
+                downloaded = downloads.getLong("downloaded", 0);
+                id = downloads.get("id", " ");
+                resolution = downloads.get("resolution", " ");
                 list = new ArrayList<>(7);
+                list.add(title);
                 list.add(url);
                 list.add(path);
-                list.add(trunc);
-                list.add(String.valueOf(creationTime));
+                list.add(String.valueOf(time));
                 list.add(String.valueOf(fileSize));
                 list.add(String.valueOf(downloaded));
-                downloadRecords.put(title, list);
-                times.add(creationTime);
+                list.add(id);
+                list.add(resolution);
+                downloadRecords.put(child, list);
             }
-            creationTimes = times.toArray(creationTimes);
-            java.util.Arrays.sort(creationTimes);
         }catch(BackingStoreException bse){
             
         }
     }
     
-    public static void saveDownload(String title, String url, String path, String trunc, long creationTime, long fileSize, long downloaded){
-        Preferences downloads = Preferences.userRoot().node("pythos").node("downloads").node(trunc);
+    public static void saveDownload(String title, String url, String path, String id, String resolution, long time, long fileSize, long downloaded){
+        Preferences downloads = Preferences.userRoot().node("pythos").node("downloads").node(String.valueOf(time));
         downloads.put("title", title);
         downloads.put("url", url);
         downloads.put("path", path);
-        downloads.put("trunc", trunc);
-        downloads.putLong("creationtime", creationTime);
+        downloads.put("time", String.valueOf(time));
         downloads.putLong("size", fileSize);
+        downloads.putLong("downloaded", downloaded);
+        downloads.put("id", id);
+        downloads.put("resolution", resolution);
+    }
+
+    public static void saveDownload(long time, long downloaded){
+        Preferences downloads = Preferences.userRoot().node("pythos/downloads").node(String.valueOf(time));
         downloads.putLong("downloaded", downloaded);
     }
     
@@ -128,5 +123,4 @@ public class DownloadRecords{
         Preferences dir = Preferences.userRoot().node("pythos/directory");
         AppProperties.curDirectory = dir.get("dir", null);
     }
-        
 }
