@@ -77,11 +77,9 @@ public class SimpleYouTubeParser{
                 numViews = getElementValue(tvdTag, index, false);
                 videoProperties += "- Views: "+numViews;
                 if(videoProperties.contains("class=\"yt")){
-                    System.out.println("Ad detected here");
                     currentIndex += 5;
                     continue;
                 }
-                System.out.println(videoProperties);
                 currentIndex++;
                 index = 0;
                 thumbnail = getThumbnail("https://i.ytimg.com/vi/"+id+"/mqdefault.jpg");
@@ -164,11 +162,17 @@ void setWatchTag(String html, int currentIndex){
     }
     
    public boolean hasNextPage(){
+        if(HTML == null){
+            return false;
+        }
         int i = HTML.indexOf("Next "+'\u00BB');
         return (i > -1);
     }
     
    public boolean hasPreviousPage(){
+       if(HTML == null){
+           return false;
+       }
        int i = HTML.indexOf('\u00AB'+" Previous");
        return (i > -1);
     }
