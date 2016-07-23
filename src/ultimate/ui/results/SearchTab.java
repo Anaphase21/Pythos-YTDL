@@ -340,6 +340,9 @@ public class SearchProgressPanel extends JPanel implements ActionListener, Runna
             if((processor != null) && (!processor.isDone())){
                 processor.cancel(true);
             }
+            if((panel.processor != null)&&(!panel.processor.isDone())){
+                panel.processor.cancel(true);
+            }
             if((panel.runner != null) && (!panel.runner.isDone())){
                 panel.runner.cancel(true);
             }
