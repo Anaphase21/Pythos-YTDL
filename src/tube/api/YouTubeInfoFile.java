@@ -136,19 +136,25 @@ public class YouTubeInfoFile{
                 pcs.firePropertyChange("HTTP_OK", " ", "OK");
             }
             response = conn.getHeaderField("Location");
-            reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
             while((str = reader.readLine()) != null){
                 buff.append(str);
             }
                     
         }catch(IOException ioe){
             setErrorMessage(ioe.toString());
-            return null;
+            String err = ioe.toString();
+            if(err.startsWith("java.net.UnknownHostException")){
+                return null;
+            }else{
+                return err+"error";
+            }
         }finally{
             if(reader != null){
                 try{
                 reader.close();
                 }catch(IOException ioe){
+                    setErrorMessage(ioe.toString());
                     ioe.printStackTrace();
                     return ioe.toString();
                 }
