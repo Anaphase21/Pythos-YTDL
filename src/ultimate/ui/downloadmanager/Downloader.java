@@ -204,6 +204,7 @@ public class Downloader extends SwingWorker<Void, Void>{
             urlConn = (HttpURLConnection)connection.openConnection();
             urlConn.setRequestProperty("Range", "bytes="+String.valueOf(downloaded)+"-");
             urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36 OPR/29.0.1795.47");
+            urlConn.setConnectTimeout(60000);
             responseCode = urlConn.getResponseCode();
             if(responseCode == HttpURLConnection.HTTP_MOVED_TEMP){
                 redirectUrl = urlConn.getHeaderField("Location");
@@ -226,7 +227,10 @@ public class Downloader extends SwingWorker<Void, Void>{
             closeStreams();
             closed = true;
             setException(unke.toString()+":\nPlease check your internet connection and try again.");
-        }catch(IOException ioe){}
+        }catch(IOException ioe){
+        }catch(SecurityException se){
+        setException(se.toString());
+        }
             if(responseCode == 403){
                 setRetry(true);
             }
