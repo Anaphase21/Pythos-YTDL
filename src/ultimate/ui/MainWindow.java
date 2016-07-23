@@ -112,10 +112,29 @@ public class MainWindow extends JFrame implements PropertyChangeListener, Action
             homeUI.currentDirectory = (String)event.getNewValue();
             homeUI.currentDirectoryField.setText(homeUI.currentDirectory);
         }else if("Start".equals(property)){
+            if(AppProperties.curDirectory == null){
+                JOptionPane.showMessageDialog(this, "Download path not set.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            File dir = new File(AppProperties.curDirectory);
+            if(!dir.exists()){
+                JOptionPane.showMessageDialog(this, "The currently set download path is invalid. Please set a valid path", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             setFileExistence();
             downloadWindow.addDownloadPanel(AppProperties.title, homeUI.yt.links.get(homeUI.urlKey), AppProperties.curDirectory, AppProperties.getExtension(homeUI.urlKey), homeUI.getId(), homeUI.urlKey);
             downloadWindow.updateUI();
         }else if("addNotice".equals(property)){
+            if(AppProperties.curDirectory == null){
+                JOptionPane.showMessageDialog(this, "Download path not set.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            File dir = new File(AppProperties.curDirectory);
+            if(!dir.exists()){
+                JOptionPane.showMessageDialog(this, "The currently set download path is invalid. Please set a valid path", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             setFileExistence();
             SearchResultsPanel panel = (SearchResultsPanel)event.getNewValue();
             downloadWindow.addDownloadPanel(AppProperties.title, panel.url, AppProperties.curDirectory, AppProperties.getExtension(panel.urlKey), panel.getId(), panel.urlKey);
