@@ -58,7 +58,9 @@ public class SearchResultsPanel extends JPanel implements PropertyChangeListener
             if(!flag){
                 return;
             }
-            setComponents(parser);
+            if(parser.video.size() > 0){
+                setComponents(parser);
+            }
         }
     }
     
@@ -93,18 +95,19 @@ public class SearchResultsPanel extends JPanel implements PropertyChangeListener
     Point viewportPosition;
     InfoFileRunner runner;
     Processor processor;
+    CustomRadioButton butt;
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
     public SearchResultsPanel(SearchTab searchTab){
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-        results = new ArrayList(20);
+        results = new ArrayList<JPanel>(20);
         parser = new SimpleYouTubeParser();
         addPropertyChangeListener(this);
         tb = new JTextArea();
         tb.setLineWrap(true);
         backFromDwlPanel = new Point();
         this.searchTab = searchTab;
-        cachedPages = new HashMap(100);
+        cachedPages = new HashMap<JPanel, Point>(100);
         viewportPosition = new Point();
     }
         
@@ -168,6 +171,7 @@ public class SearchResultsPanel extends JPanel implements PropertyChangeListener
         back.addActionListener(this);
         download = new JButton("Download");
         download.addActionListener(this);
+        download.setOpaque(true);
         backPanel.add(download);
         download.setEnabled(false);
         backPanel.add(Box.createHorizontalGlue());
@@ -230,6 +234,7 @@ public class SearchResultsPanel extends JPanel implements PropertyChangeListener
             id = (String)event.getNewValue();
             viewportPosition = searchTab.viewPort.getViewPosition();
             if((runner != null) && (!runner.isDone())){
+                runner.cancel(true);
                 pcs.firePropertyChange("removeProgressPanel", " ", "null");
             }
             setId(id);
@@ -286,11 +291,16 @@ public class SearchResultsPanel extends JPanel implements PropertyChangeListener
             add(currentPanel);
             searchTab.viewPort.setViewPosition(cachedPages.get(currentPanel));
         }else if(jcomponent instanceof CustomRadioButton){
-            urlKey = ((CustomRadioButton)jcomponent).getText();
+            urlKey = (butt = (CustomRadioButton)jcomponent).getText();
             url = yt.links.get(urlKey);
             download.setEnabled(true);
             tb.setText(yt.links.get(urlKey));
+            revalidate();
+            repaint();
         }else if(event.getSource() == download){//if download button is clicked.
+            butt.getParent().revalidate();
+            butt.getParent().repaint();
+            revalidate();
             addNotice();//Notify the listener(SearchResultsWindow->SearchWindowUI->MainWindow) to initiate a download.
         }
     }
@@ -391,12 +401,11 @@ private void setResolutionsPanel(){
         return;
     }
     removeAll();
-    add(PanelFactory.createResolsPanel(resolutions, this));
-    setFrameTitle("Download options");
     revalidate();
     repaint();
-    updateUI();
-}
+    add(PanelFactory.createResolsPanel(resolutions, this));
+    setFrameTitle("Download options");
+ }
 
     private void processTask(){
         if((runner != null) && (!runner.isDone())){
