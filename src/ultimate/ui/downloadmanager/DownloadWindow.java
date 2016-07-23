@@ -83,7 +83,7 @@ public final class DownloadWindow extends JPanel implements PropertyChangeListen
         long downloaded = 0;
         long fileSize = 0;
         ArrayList<String> list = null;
-        java.util.Collection<String> set = (java.util.Collection)DownloadRecords.downloadRecords.keySet();
+        java.util.Collection<String> set = (java.util.Collection<String>)DownloadRecords.downloadRecords.keySet();
         Iterator iterator = set.iterator();
         long[] times  = new long[set.size()];
         for(int i = 0; iterator.hasNext(); ++i){
