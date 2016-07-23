@@ -38,6 +38,13 @@ public class CustomRadioButton extends JRadioButton{
             public void mouseExited(MouseEvent event){                    
             }
             
+            @Override
+            public void mousePressed(MouseEvent event){
+                super.mousePressed(event);
+                repaint();
+                getParent().revalidate();
+                getParent().repaint();
+            }
         });
     }
 }
