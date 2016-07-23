@@ -44,7 +44,7 @@ public class SearchResultsWindow extends JFrame implements PropertyChangeListene
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setPreferredSize(new Dimension(755, 502));
         Point point = ultimate.main.UltimateYTDL.mainWindow.getLocationOnScreen();
-        setLocation(point.x+5, point.y+5);
+        setLocation(point.x+50, point.y+20);
     }
     
     public void setComponents(){
