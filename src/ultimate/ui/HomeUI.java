@@ -42,6 +42,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
             try{
                 HomeUI.this.g = yt.getPageSource("https://youtube.com/watch?v="+getId());
                 if(g.endsWith("error")){
+                    JOptionPane.showMessageDialog(null, "There was an error encountered."+'\n'+"Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
                     return null;
                 }
                 if(g == null){
@@ -82,6 +83,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
                     cancelEnter = canCancel ? "Cancel" : "Enter";
                     fetchFileButton.setText(cancelEnter);
                     remove(progress);
+                    revalidate();
                    JOptionPane.showMessageDialog(mainWindow, ee.toString()+"\n"+error, "Error", JOptionPane.ERROR_MESSAGE);
                    error = "";
                    HomeUI.this.updateUI();
@@ -315,7 +317,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
             canCancel = !canCancel;
             cancelEnter = canCancel ? "Cancel" : "Enter";
             fetchFileButton.setText(cancelEnter);            
-            for(int i = getComponentCount()-1; i > 4; i--){
+            for(int i = getComponentCount()-1; i > 2; i--){
                 remove(i);
             }
             revalidate();
