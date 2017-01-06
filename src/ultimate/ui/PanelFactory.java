@@ -52,7 +52,7 @@ public class PanelFactory{
         return resolutionsPanel;
     }
     
-    public static JPanel createFileChooserPanel(){
+/**    public static JPanel createFileChooserPanel(){
         JTextField fileChooser = new JTextField(20);
         fileChooser.setMaximumSize(new Dimension(580, 25));
         final JButton directoryButton = new JButton("Set Path");
@@ -64,9 +64,9 @@ public class PanelFactory{
         fileChooserPanel.add(directoryButton);
         fileChooserPanel.add(fileChooser);
         return fileChooserPanel;
-    }
+    }*/
     
-    public static JPanel createTextFieldFileChooserPanel(String label){
+/**    public static JPanel createTextFieldFileChooserPanel(String label){
         JPanel textFieldPanel = new JPanel();
         textFieldPanel.setLayout(new BoxLayout(textFieldPanel, BoxLayout.LINE_AXIS));
         PanelFactory.textField = new JTextField(20);
@@ -87,7 +87,7 @@ public class PanelFactory{
         textFieldFileChooserPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         textFieldFileChooserPanel.add(PanelFactory.createFileChooserPanel());
         return textFieldFileChooserPanel;
-    }
+    }*/
     public static JPanel createDownloadAndResetButtonsPanel(JButton downloadButton, JButton resetButton){
         JPanel downloadResetButtons = new JPanel();
         downloadResetButtons.setOpaque(true);
