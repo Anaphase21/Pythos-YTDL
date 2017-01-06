@@ -51,13 +51,14 @@ public class MainWindow extends JFrame implements PropertyChangeListener, Action
     }
     
     public void init(){
-    setTitle("Pythos YTDL v1.0.0");
+    setTitle("Pythos YTDL v1.0.1");
+    setIconImage((new ImageIcon(getClass().getResource("/res/thumbs/py.png"))).getImage());
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setPreferredSize(new Dimension(650, 480));
     pcs = new PropertyChangeSupport(this);
     homeUI = new HomeUI(this);
     homeUI.downloadButton.addActionListener(this);
-    searchWindow = new SearchWindowUI();
+    searchWindow = new SearchWindowUI(this);
     downloadWindow = new DownloadWindow();
     addPropertyChangeListener(downloadWindow);
     //homeUI.setLayout(new BoxLayout(homeUI, BoxLayout.PAGE_AXIS));
@@ -106,6 +107,9 @@ public class MainWindow extends JFrame implements PropertyChangeListener, Action
         if("directory".equals(property)){
             searchWindow.currentDirectory = (String)event.getNewValue();
             searchWindow.currentDirectoryField.setText(searchWindow.currentDirectory);
+            revalidate();
+            repaint();
+        }else if("update".equals(property)){
             revalidate();
             repaint();
         }else if("directory1".equals(property)){
