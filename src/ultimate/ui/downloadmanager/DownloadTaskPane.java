@@ -22,6 +22,7 @@ import java.awt.Graphics2D;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.event.*;
 import javax.swing.*;
 import java.beans.*;
@@ -29,6 +30,7 @@ import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 import properties.AppProperties;
+import ultimate.ui.MainWindow;
 
 /**
  *
@@ -36,6 +38,13 @@ import properties.AppProperties;
  */
 public class DownloadTaskPane extends JPanel implements PropertyChangeListener, ActionListener{
     JProgressBar downloadProgressBar;
+    private JPopupMenu popupMenu;
+    private JMenuItem play;
+    private JMenuItem stop;
+    private JMenuItem openLocation;
+    private JMenuItem restart;
+    private MouseListener popupListener;
+    private MainWindow mainWindow;
     long downloaded;
     long fileSize;
     int STATE;
@@ -44,6 +53,8 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
     final int PAUSED = 0;
     final int ACTIVE = 1;
     final int COMPLETED = 2;
+    final int ERROR = 3;
+    final int STARTING = 4;
     protected boolean hasBeenExecuted = false;//
     JLabel downloadedLabel;
     JLabel sizeLabel;
@@ -57,10 +68,31 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
     int tries = 0;
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     
+    {
+        popupMenu = new JPopupMenu();
+        stop = new JMenuItem("Stop download");
+        stop.addActionListener(this);
+        play = new JMenuItem("Play file");
+        play.addActionListener(this);
+        openLocation = new JMenuItem("Open file Location");
+        openLocation.addActionListener(this);
+        restart = new JMenuItem("Restart");
+        restart.addActionListener(this);
+        if(!featureSupported()){
+            play.setEnabled(false);
+            openLocation.setEnabled(false);
+        }
+        popupMenu.add(stop);
+//        popupMenu.add(restart);
+        popupMenu.add(play);
+        popupMenu.add(openLocation);
+    };
+    
     protected DownloadTaskPane(Downloader task, long dateTime){
         this.task = task;
+        this.task.setDownloadPane(this);
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-        titledBorder = BorderFactory.createTitledBorder(this.task.title);
+        titledBorder = BorderFactory.createTitledBorder("");
         btitle = BorderFactory.createTitledBorder(titledBorder, "<HTML><p color='#0403e9'>"+this.task.title+"</p></HTML>", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, new Font(Font.SERIF, Font.ITALIC, 12));
         setBorder(btitle);
         setOpaque(true);
@@ -88,6 +120,7 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
         add(dateLabel);
         add(dwlButtonState);    
         this.task.addPropertyChangeListener(this);
+        activateMouse();
     }
     
     void updateProgressBar(int progress){
@@ -97,13 +130,11 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
     
     void updateDownloadProgress(long downloading){
         downloadedLabel.setText(downloadedString+AppProperties.bytesToMegaGiga(downloaded)+"</p></HTML>");
-  //        downloadedLabel.setText(downloadedString+String.valueOf(downloaded)+"</p></HTML>");
         repaint();
     }
     
     void updateFileDownloadSize(long size){
         sizeLabel.setText(sizeString+AppProperties.bytesToMegaGiga(fileSize)+"</p></HTML>");
-                //downloadedLabel.setText(sizeString+String.valueOf(fileSize)+"</p></HTML>");
         repaint();
     }
     
@@ -125,10 +156,12 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
         switch(STATE){
         case PAUSED:
             dwlButtonState.setText("Resume");
+            dwlButtonState.setEnabled(true);
             repaint();
             break;
         case ACTIVE:
             dwlButtonState.setText("Pause");
+            dwlButtonState.setEnabled(true);
             repaint();
             break;
         case COMPLETED:
@@ -138,11 +171,21 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
             add(label);
             repaint();
             break;
+        case ERROR:
+            dwlButtonState.setText("Retry");
+            repaint();
+            break;
+        case STARTING:
+            String text = task.isPausedBefore?"Resuming...":"Starting...";
+            dwlButtonState.setText(text);
+            dwlButtonState.setEnabled(false);
+            repaint();
+            break;
         }
         updateUI();
     }
     
-    void setRemove(){
+    private void setRemove(){
         pcs.firePropertyChange("remove", false, true);
     }
     
@@ -158,6 +201,7 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
             updateProgressBar(progress);
         }else if("D_STATE".equals(property)){
             STATE = (Integer)event.getNewValue();
+            System.out.println(STATE);
             setButtonState();
         }else if("fileSize".equals(property)){
             this.fileSize = (Long)event.getNewValue();
@@ -177,7 +221,6 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
             setBorder(btitle);
             updateUI();
             repaint();
-            System.out.println(titledBorder.getTitle());
         }else if("retry".equals(property)){
             if(!task.isCancelled()){
                 task.cancel(true);
@@ -193,27 +236,33 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
     
     @Override
     public void actionPerformed(ActionEvent event){
+        if(event.getSource() == openLocation){
+            openLocation();
+            return;
+        }
+        if(event.getSource() == stop){
+            task.closed = true;
+            return;
+        }
+        if(event.getSource() == play){
+            play();
+            return;
+        }
        if(STATE == PAUSED){
-           if(!hasBeenExecuted){
-               STATE = ACTIVE;
-               task.STATE = task.active;
-               task.isPausedBefore = true;
-               if(task.closed){
-                   task = new Downloader(task.url, task.title, task.path, task.id, task.resolution, task.time, fileSize, downloaded);
-                   task.addPropertyChangeListener(this);
-                   task.isPausedBefore = true;
-                   task.execute();
-               }
-           }else{
-               task.execute();
-               hasBeenExecuted = false;
-               task.isPausedBefore = true;
-           }
-           setButtonState();
-           //task.doNotify();
+            STATE = ACTIVE;
+            task.STATE = task.active;
+            if(task.closed){
+                task = new Downloader(task.url, task.title, task.path, task.id, task.resolution, task.time, fileSize, downloaded);
+                task.setDownloadPane(this);
+                task.addPropertyChangeListener(this);
+                task.isPausedBefore = true;
+                task.execute();
+            }
+            setButtonState();
        }else if(STATE == ACTIVE){
            task.STATE = PAUSED;
            STATE = PAUSED;
+           task.isPausedBefore = true;
            setButtonState();
        }
     }
@@ -267,8 +316,27 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
         public void actionPerformed(ActionEvent event){
             JComponent component = (JComponent)event.getSource();
             if(component instanceof RemovePaneButton){
-                DownloadRecords.deleteRecord(DownloadTaskPane.this.task.title, DownloadTaskPane.this.task.path);
-                DownloadTaskPane.this.setRemove();
+                int option = JOptionPane.showConfirmDialog(JOptionPane.getRootFrame(), "Would you like to delete the file as well?\nChoosing \"No\" will only remove the task from the downloads window.\nChoosing \"Yes\" will remove the task, and as well delete the downloaded file from your file system.", "Confirm action", JOptionPane.YES_NO_OPTION);
+                if(option == JOptionPane.NO_OPTION){
+                    DownloadRecords.deleteRecord(DownloadTaskPane.this.task.title, DownloadTaskPane.this.task.path);
+                    DownloadTaskPane.this.setRemove();
+                }else if(option == JOptionPane.YES_OPTION){
+                   DownloadRecords.deleteRecord(DownloadTaskPane.this.task.title, DownloadTaskPane.this.task.path);
+                    DownloadTaskPane.this.setRemove();
+                    if(!task.closed){
+                        task.closed = true;
+                        doWait();//wait for the streams to close before deleting
+                    }
+                    java.io.File file = new java.io.File(task.path+task.title);
+                    try{
+                    boolean f = file.delete();
+                    System.out.println(f);
+                    }catch(Exception e){
+                    if(e instanceof SecurityException){
+                        JOptionPane.showMessageDialog(null, "File permission denied. Try running the application with admin+'\n'permisions or root privileges.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                    }
+                }
             }
         }
     }
@@ -290,11 +358,76 @@ public class DownloadTaskPane extends JPanel implements PropertyChangeListener, 
             yt.parseInfoFile(source);
             String s = yt.links.get(task.resolution);
             task.url = yt.links.get(s);
-            System.out.println(s);
             task = new Downloader(s, task.title, task.path, task.id, task.resolution, task.time, task.fileSize, task.downloaded);
             task.isPausedBefore = true;
             task.addPropertyChangeListener(this);
             task.execute();
         }catch(java.io.IOException ioe){}
+    }
+    
+    public void activateMouse(){
+        popupListener = new MouseAdapter(){
+            @Override
+            public void mouseReleased(MouseEvent event){
+                showPopup(event);
+            }
+            
+            @Override
+            public void mousePressed(MouseEvent event){
+                showPopup(event);
+            }
+            
+            @Override
+            public void mouseClicked(MouseEvent event){
+                showPopup(event);
+            }            
+        };
+        addMouseListener(popupListener);
+    }
+    
+    private void showPopup(MouseEvent event){
+        if(event.isPopupTrigger()){
+            if(task.closed){
+                stop.setEnabled(false);
+            }
+            popupMenu.show(event.getComponent(), event.getX(), event.getY());
+        }
+    }
+    
+    private boolean featureSupported(){
+        if(Desktop.isDesktopSupported()){
+            if(Desktop.getDesktop().isSupported(Desktop.Action.OPEN)){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    private void play(){
+        Desktop desktop = Desktop.getDesktop();
+        try{
+            desktop.open(new java.io.File(task.path+task.title));
+        }catch(java.io.IOException ioe){}
+    }
+    
+    private void openLocation(){
+        Desktop desktop = Desktop.getDesktop();
+        try{
+            desktop.open(new java.io.File(task.path));
+        }catch(java.io.IOException ioe){}
+    }
+    
+    public void setParentFrame(JFrame frame){
+        
+    }
+    
+    private void doWait(){
+        synchronized(this){
+            try{
+                this.wait();
+            }catch(InterruptedException ie){}
+        }
     }
 }
