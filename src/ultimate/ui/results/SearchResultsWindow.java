@@ -23,6 +23,7 @@ import java.beans.*;
 import ultimate.ui.PanelFactory;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
+import ultimate.ui.SearchWindowUI;
 
 /**
  *
@@ -35,15 +36,18 @@ public class SearchResultsWindow extends JFrame implements PropertyChangeListene
     JTextField searchField;
     JViewport viewport;
     JTabbedPane tabs;
+    SearchWindowUI searchWin;
     public static int newTabNum = 2;
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     
-    public SearchResultsWindow(){
+    public SearchResultsWindow(SearchWindowUI searchWin){
+        this.searchWin = searchWin;
+        setIconImage((new ImageIcon(getClass().getResource("/res/thumbs/py.png"))).getImage());
         addWindowListener(this);
         setTitle("Search results");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setPreferredSize(new Dimension(755, 502));
-        Point point = ultimate.main.UltimateYTDL.mainWindow.getLocationOnScreen();
+        Point point = searchWin.mainWin.getLocationOnScreen();
         setLocation(point.x+50, point.y+20);
     }
     
@@ -74,8 +78,11 @@ public class SearchResultsWindow extends JFrame implements PropertyChangeListene
         String property = event.getPropertyName();
         if("done".equals(property)){
             revalidate();
+            repaint();
             setVisible(true);
         }else if("addNotice".equals(property)){
+            revalidate();
+            repaint();
             System.out.println("Download added");
             addNotice((SearchResultsPanel)event.getNewValue());
         }else if("title".equals(property)){//sets the frame's title when ever the SearchResultsPanel object fires the 'title' property change by its setFrameTitle method.
@@ -107,6 +114,10 @@ public class SearchResultsWindow extends JFrame implements PropertyChangeListene
             tabs.setTabComponentAt(i, PanelFactory.createCloseButtonPanel(tabs, tab.searchField.getText()));
         }else if("tabCount".equals(property)){
             newTabNum--;
+        }else if("revalidate".equals(property)){
+            System.out.println("Got it now!");
+            revalidate();
+            repaint();
         }
     }
     
