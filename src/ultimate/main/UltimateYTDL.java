@@ -26,7 +26,7 @@ import properties.AppProperties;
  * @author Anaphase21
  */
 public class UltimateYTDL {
-    public static MainWindow mainWindow;
+//    public MainWindow mainWindow;
 
     /**
      * @param args the command line arguments
@@ -36,12 +36,12 @@ public class UltimateYTDL {
             @Override
             public void run(){
                 try{
-                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());   
+                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
                 }catch(Exception e){
                     
                 }
                 AppProperties.loadBackgroundImage();
-                mainWindow = new MainWindow();
+                MainWindow mainWindow = new MainWindow();
                 mainWindow.init();
                 mainWindow.setFrame();
             }
