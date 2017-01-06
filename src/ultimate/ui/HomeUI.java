@@ -18,12 +18,14 @@
 package ultimate.ui;
 
 import javax.swing.*;
+import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.concurrent.*;
 import java.beans.*;
 import java.io.*;
 import javax.swing.border.*;
+import javax.swing.text.DefaultEditorKit;
 import tube.api.YouTubeInfoFile;
 import properties.AppProperties;
 import ultimate.ui.downloadmanager.DownloadRecords;
@@ -32,7 +34,7 @@ import ultimate.ui.downloadmanager.DownloadRecords;
  *
  * @author Anaphase21
  */
-public class HomeUI extends JPanel implements ActionListener, PropertyChangeListener, KeyListener{
+public class HomeUI extends JPanel implements ActionListener, PropertyChangeListener, KeyListener, PopupMenuListener{
     private class GetInfoFileProgress extends SwingWorker<CustomRadioButton[], Void>{
         @Override
        public CustomRadioButton[] doInBackground(){
@@ -80,8 +82,9 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
                }catch(ExecutionException ee){
                    //ee.printStackTrace();
                     canCancel = !canCancel;
-                    cancelEnter = canCancel ? "Cancel" : "Enter";
+                    cancelEnter = "Enter";
                     fetchFileButton.setText(cancelEnter);
+                    fetchFileButton.setToolTipText("Get links for this video.");
                     remove(progress);
                     revalidate();
                    JOptionPane.showMessageDialog(mainWindow, ee.toString()+"\n"+error, "Error", JOptionPane.ERROR_MESSAGE);
@@ -97,15 +100,18 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
                if(resolutions == null){
                     JOptionPane.showMessageDialog(mainWindow, "Couldn't complete task, please try again.\nYOU MAY ALSO CHECK YOUR INETERNET CONNECTIONS.\nYou can also restart the application and try again", "Notice", JOptionPane.INFORMATION_MESSAGE);
                     canCancel = !canCancel;
-                    cancelEnter = canCancel ? "Cancel" : "Enter";
+                    cancelEnter = "Enter";
                     fetchFileButton.setText(cancelEnter);
+                    fetchFileButton.setToolTipText("Get links for this video");
                     remove(progress);
                     return;
                }
-               HomeUI.this.add(PanelFactory.createResolsPanel(HomeUI.this.resolutions, HomeUI.this));
+               resolPanel =  PanelFactory.createResolsPanel(HomeUI.this.resolutions, HomeUI.this);
+               HomeUI.this.add(resolPanel);
                HomeUI.this.add(Box.createRigidArea(new Dimension(0, 40)));
                ta = new JTextArea();
-               HomeUI.this.add(PanelFactory.createDownloadAndResetButtonsPanel(downloadButton, resetButton));
+               downloadResetPanel = PanelFactory.createDownloadAndResetButtonsPanel(downloadButton, resetButton);
+               HomeUI.this.add(downloadResetPanel);
                ta.setLineWrap(true);
                add(ta);
                fetchFileButton.setEnabled(false);
@@ -117,6 +123,9 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
     JButton fetchFileButton;
     JButton downloadButton;
     JButton resetButton;
+    JPanel resolPanel;
+    JPanel downloadResetPanel;
+    JPanel tfsPanel;
     volatile YouTubeInfoFile yt = null;
     CustomRadioButton[] resolutions;
     MainWindow frame;
@@ -126,6 +135,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
     JTabbedPane tabs;
     JMenu menu;
     JMenuBar menuBar;
+    JPopupMenu popupMenu;
     JScrollPane scrollPane;
     JFileChooser fileChooser;
     JFrame mainWindow;
@@ -133,7 +143,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
     static JPanel progress;
     JTextArea ta;
     JButton directoryButton;
-    JTextField textField;
+    CJTextField textField;
     JTextField currentDirectoryField;
     public String currentDirectory = " ";
     private String id;
@@ -142,6 +152,27 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
     private String cancelEnter;
     HomeUI.GetInfoFileProgress task;
     volatile String error = "Error";
+    
+    {
+        popupMenu = new JPopupMenu();
+        popupMenu.addPopupMenuListener(this);//The listener will listen to popupMenu visibility and update the components
+        tfsPanel = this.createTextFieldFileChooserPanel("Enter URL");
+        Action[] actions = textField.getActions();
+        int len = actions.length;
+        Action action;
+        for(int i = 0; i < len; ++i){
+            action = actions[i];
+            if(action.getValue(Action.NAME).equals(DefaultEditorKit.copyAction)){
+                popupMenu.add(action);
+            }else if(action.getValue(Action.NAME).equals(DefaultEditorKit.cutAction)){
+                popupMenu.add(action);
+            }else if(action.getValue(Action.NAME).equals(DefaultEditorKit.pasteAction)){
+                popupMenu.add(action);
+            }else if(action.getValue(Action.NAME).equals(DefaultEditorKit.selectAllAction))
+                popupMenu.add(action);
+        }
+    }
+    
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     public HomeUI(MainWindow mainWindow){
         this.mainWindow = mainWindow;
@@ -152,7 +183,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
         cancelEnter = canCancel ? "Cancel" : "Enter";
         fetchFileButton = new JButton(cancelEnter);
         fetchFileButton.setPreferredSize(new Dimension(60, 20));
-        fetchFileButton.setToolTipText("Get links for this video");
+        fetchFileButton.setToolTipText("Get links for this video.");
         fetchFileButton.addActionListener(this);
         downloadButton = new JButton("Download");
         downloadButton.setToolTipText("Click to start downloading");
@@ -161,15 +192,18 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
         resetButton.setToolTipText("Reset this window");
         resetButton.addActionListener(this);
         margin = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-        fileChooser = new JFileChooser();
+        if(AppProperties.curDirectory == null){
+            fileChooser = new JFileChooser();
+        }else{
+            fileChooser = new JFileChooser(new File(AppProperties.curDirectory));
+        }
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         setBorder(margin);
     }
     
     public void setUIComponents(){
-        JPanel pane = this.createTextFieldFileChooserPanel("Enter URL");
-        pane.setOpaque(true);
-        add(pane);
+        tfsPanel.setOpaque(true);
+        add(tfsPanel);
         add(Box.createRigidArea(new Dimension(0, 10)));
         fetchFileButton.setOpaque(true);
         add(fetchFileButton);
@@ -187,7 +221,7 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
             }
         };
         textFieldPanel.setLayout(new BoxLayout(textFieldPanel, BoxLayout.LINE_AXIS));
-        textField = new JTextField(20){
+        textField = new CJTextField(20){
             @Override
             public void paintComponent(Graphics g){
                 super.paintComponent(g);
@@ -294,13 +328,15 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
                     repaint();
                 }
                 canCancel = !canCancel;
-                cancelEnter = canCancel ? "Cancel" : "Enter";
+                cancelEnter = "Enter";
                 fetchFileButton.setText(cancelEnter);
+                fetchFileButton.setToolTipText("Get links for this video.");
                 return;
             }
             canCancel = !canCancel;
-            cancelEnter = canCancel ? "Cancel" : "Enter";
+            cancelEnter = "Cancel";
             fetchFileButton.setText(cancelEnter);
+            fetchFileButton.setToolTipText("Cancel request.");
             progress = PanelFactory.createProgressPanel("Please wait...", true);
             add(progress);
             revalidate();
@@ -309,17 +345,18 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
             createAndExecuteTask();
         }
         else if(event.getSource() == downloadButton){
-            System.out.println("detected");
             addNotice();//Notifies its listener object(MainWindow object) to add a download task
         }
         else if(event.getSource() == resetButton){
             fetchFileButton.setEnabled(true);
             canCancel = !canCancel;
-            cancelEnter = canCancel ? "Cancel" : "Enter";
-            fetchFileButton.setText(cancelEnter);            
-            for(int i = getComponentCount()-1; i > 2; i--){
+            cancelEnter = "Enter";
+            fetchFileButton.setText(cancelEnter);
+            fetchFileButton.setToolTipText("Get links for this video.");
+            for(int i = getComponentCount()-1; i > -1; i--){
                 remove(i);
             }
+            setUIComponents();
             revalidate();
             updateUI();
         }else if(event.getSource() == directoryButton){
@@ -330,6 +367,8 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
                 currentDirectoryField.setText(dir);
                 setDirectory(dir);
                 AppProperties.curDirectory = dir;
+                fileChooser = new JFileChooser(new File(dir));
+                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 DownloadRecords.saveDirectory(dir);
             }
             }else if(component instanceof CustomRadioButton){
@@ -339,8 +378,9 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
                     ta.setLineWrap(true);
                 }
                 ta.setText(yt.links.get(urlKey));
-                updateUI();
-                repaint();
+                pcs.firePropertyChange("update", false, true);
+//                updateUI();
+//                repaint();
         }
     }
     @Override
@@ -427,6 +467,58 @@ public class HomeUI extends JPanel implements ActionListener, PropertyChangeList
     
     @Override
     public void keyTyped(KeyEvent event){
+        
+    }
+    
+    class CJTextField extends JTextField implements MouseListener{
+        CJTextField(int columns){
+            super(columns);
+//            popupMenu.addMouseListener(this);
+            addMouseListener(this);
+        }
+//        final MouseListener mouseListener = new MouseAdapter(){
+            @Override
+            public void mousePressed(MouseEvent event){
+                HomeUI.this.showPopup(event);
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent event){
+                HomeUI.this.showPopup(event);
+            }
+            @Override
+            public void mouseReleased(MouseEvent event){
+                HomeUI.this.showPopup(event);
+            }
+           @Override
+           public void mouseExited(MouseEvent event){
+               
+           }
+           @Override
+           public void mouseEntered(MouseEvent event){
+               
+           }
+  //      };
+    }
+    
+    private void showPopup(MouseEvent event){
+        if(event.isPopupTrigger()){
+            popupMenu.show(event.getComponent(), event.getX(), event.getY());
+        }
+    }
+    
+    @Override
+    public void popupMenuCanceled(PopupMenuEvent event){
+        pcs.firePropertyChange("update", false, true);
+    }
+    
+    @Override
+    public void popupMenuWillBecomeInvisible(PopupMenuEvent event){
+        pcs.firePropertyChange("update", false, true);
+    }
+    
+    @Override
+    public void popupMenuWillBecomeVisible(PopupMenuEvent event){
         
     }
 }
