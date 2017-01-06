@@ -295,6 +295,7 @@ public class SearchResultsPanel extends JPanel implements PropertyChangeListener
             url = yt.links.get(urlKey);
             download.setEnabled(true);
             tb.setText(yt.links.get(urlKey));
+            pcs.firePropertyChange("revalidate", true, false);
             revalidate();
             repaint();
         }else if(event.getSource() == download){//if download button is clicked.
