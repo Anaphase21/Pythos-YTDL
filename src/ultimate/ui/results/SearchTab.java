@@ -267,6 +267,9 @@ class CustomJButton extends JButton{
     }
 public class SearchProgressPanel extends JPanel implements ActionListener, Runnable, PropertyChangeListener{
     CustomJButton cancelButton;
+    int MAX_FPS = 60;
+    long loopTime = 16;
+    long sleepTime = 0;
     int arcColor = 0x010089;
     int red = 0;
     Color lColor = new Color(0x01ee08);
@@ -355,7 +358,16 @@ public class SearchProgressPanel extends JPanel implements ActionListener, Runna
     public void run(){
         int k = width-50;
         boolean reverse = false;
+        long last = 0;
+        long diff = 25;
         while(true){
+            if(((diff = System.currentTimeMillis()-last)) < loopTime){
+                last = System.currentTimeMillis();
+                try{
+                    Thread.sleep(loopTime-diff);
+                    System.out.println(loopTime-diff);
+                }catch(InterruptedException e){}
+            }
             if((cancelled) || (error)){
                 cancelled = false;
                 try{
