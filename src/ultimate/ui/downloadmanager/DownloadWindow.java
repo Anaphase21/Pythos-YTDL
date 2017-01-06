@@ -55,7 +55,8 @@ public final class DownloadWindow extends JPanel implements PropertyChangeListen
     
     @Override
     public void propertyChange(PropertyChangeEvent event){
-        if(event.getPropertyName().equals("fileExistence")){
+        String propertyName = event.getPropertyName();
+        if(propertyName.equals("fileExistence")){
             fileExistence = (Boolean)event.getNewValue();
             return;
         }
@@ -97,12 +98,17 @@ public final class DownloadWindow extends JPanel implements PropertyChangeListen
             title = list.get(0);
             urlthis = list.get(1);
             path = list.get(2);
+            if(!AppProperties.fileExists(path+title)){
+                DownloadRecords.deleteRecord(title, path);
+                continue;
+            }
             time = Long.parseLong(list.get(3));
             fileSize = Long.parseLong(list.get(4));
             downloaded = Long.parseLong(list.get(5));
             id = list.get(6);
             resolution = list.get(7);
             downloader = new Downloader(urlthis, title, path, id, resolution, time, fileSize, downloaded);
+            downloader.closed = true;
             taskPane = new DownloadTaskPane(downloader, time);
             if(downloaded > 0){
                 taskPane.downloadProgressBar.setValue((int)(downloaded*100/fileSize));
