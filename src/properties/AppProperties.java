@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.awt.*;
 import javax.imageio.ImageIO;
 import java.io.DataInputStream;
+import java.io.File;
 
 /**
  *
@@ -46,7 +47,7 @@ public class AppProperties{
         }catch(IOException ioe){}
         return backgroundImg;
     }
-    
+        
     static char[] invalidChars = {'?', '*', '/', ';', ':', '<', '>', '|', '\n', '\\', '"'};
         
     public static String replaceInvalidCharacters(String title){
@@ -198,5 +199,10 @@ public class AppProperties{
             numbs[i+1] = key;
         }
         return numbs;
+    }
+    
+    public static boolean fileExists(String file){
+        File fileConn = new File(file);
+        return fileConn.exists()?true:false;
     }
 }

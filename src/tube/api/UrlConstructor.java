@@ -234,6 +234,7 @@ public class UrlConstructor {
             }
             int l = js.indexOf("{", k+1);
             sigFunctionBody = js.substring(k, js.indexOf("}", l)+1);
+            System.out.println(sigFunctionBody);
             param = js.substring(js.indexOf("(", k)+1, js.indexOf(")", k));
             String[] funcs = js.substring(l+1, js.indexOf("}", l)).split(";");//split the body into all function calls
             for(String s : funcs){
@@ -257,7 +258,7 @@ public class UrlConstructor {
             prototype = js.substring(l, k+1);
         }
         this.sigFunctionName = sigFunctionName;
-        System.out.println(prototype+sigFunctionBody+";");
+//        System.out.println(prototype+sigFunctionBody+";");
         return prototype+sigFunctionBody+";";
     }
     
@@ -266,19 +267,18 @@ public class UrlConstructor {
     }
     
     public String decypherSignature(String sig, String decypherScript){
-                String cypheredSignature = null;
-                String script = "var es={UA:function(a,b){a.splice(0,b)},cF:function(a){a.reverse()},xJ:function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}};function fs(a){a=a.split(\"\");es.cF(a,56);es.UA(a,1);es.xJ(a,14);return a.join(\"\")};";
-                javax.script.ScriptEngineManager engineManager = new javax.script.ScriptEngineManager();
-                javax.script.ScriptEngine engine = engineManager.getEngineByName("rhino");
-                engine.put("signature", sig);
-                try{
-                    cypheredSignature = "signature="+(String)engine.eval(decypherScript+sigFunctionName+"(signature)");
-//                System.out.println(engineManager.getEngineFactories());
-                }catch(Exception e){
-                    e.printStackTrace();
-                System.out.println(e.toString());
-                }
-                return cypheredSignature;
-    }
-    
+        String cypheredSignature = null;
+//      String script = "var es={UA:function(a,b){a.splice(0,b)},cF:function(a){a.reverse()},xJ:function(a,b){var c=a[0];a[0]=a[b%a.length];a[b]=c}};function fs(a){a=a.split(\"\");es.cF(a,56);es.UA(a,1);es.xJ(a,14);return a.join(\"\")};";
+        javax.script.ScriptEngineManager engineManager = new javax.script.ScriptEngineManager();
+        javax.script.ScriptEngine engine = engineManager.getEngineByName("nashorn");
+        engine = (engine != null)?engine:engineManager.getEngineByName("rhino");
+        engine.put("signature", sig);
+        try{
+            cypheredSignature = "signature="+(String)engine.eval(decypherScript+sigFunctionName+"(signature)");
+        }catch(Exception e){
+            e.printStackTrace();
+            System.out.println(e.toString());
+        }
+        return cypheredSignature;
+    }   
 }

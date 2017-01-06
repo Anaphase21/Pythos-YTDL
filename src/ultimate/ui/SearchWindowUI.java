@@ -40,11 +40,17 @@ public class SearchWindowUI extends JPanel implements ActionListener, PropertyCh
     JFileChooser fileChooser;
     public String currentDirectory;
     SearchResultsWindow window;
+    public MainWindow mainWin;
     final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
-    public SearchWindowUI(){
+    public SearchWindowUI(MainWindow mainWin){
+        this.mainWin = mainWin;
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         Border margin = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-        fileChooser = new JFileChooser();
+        if(AppProperties.curDirectory == null){
+            fileChooser = new JFileChooser();
+        }else{
+            fileChooser = new JFileChooser(new File(AppProperties.curDirectory));
+        }
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         setBorder(margin);
     }
@@ -160,7 +166,7 @@ public class SearchWindowUI extends JPanel implements ActionListener, PropertyCh
     public void actionPerformed(ActionEvent event){
         if(event.getSource() == searchButton){
            searchQuery = getText();
-           window = new SearchResultsWindow();
+           window = new SearchResultsWindow(this);
            window.addPropertyChangeListener(this);
            window.setComponents();
         }else if(event.getSource() == directoryButton){
@@ -171,6 +177,8 @@ public class SearchWindowUI extends JPanel implements ActionListener, PropertyCh
                 currentDirectoryField.setText(dir);
                 setDirectory(dir);
                 AppProperties.curDirectory = dir;
+                fileChooser = new JFileChooser(new File(dir));
+                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 DownloadRecords.saveDirectory(dir);
             }
         }
@@ -206,7 +214,7 @@ public class SearchWindowUI extends JPanel implements ActionListener, PropertyCh
     public void keyPressed(KeyEvent event){
         if(event.getKeyCode() == KeyEvent.VK_ENTER){
             searchQuery = getText();
-            window = new SearchResultsWindow();
+            window = new SearchResultsWindow(this);
             window.addPropertyChangeListener(this);
             window.setComponents();
         }
