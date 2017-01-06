@@ -55,7 +55,9 @@ public class Downloader extends SwingWorker<Void, Void>{
         volatile BufferedInputStream din;
         volatile BufferedOutputStream out;
         File fileConnection = null;
+        DownloadTaskPane taskPane;
         boolean fileAlreadyExists = false;
+        volatile boolean closeOperationFinished = false;
         volatile boolean closed = false;
         volatile boolean downloadInited = false;
         volatile boolean isPausedBefore = false;//a check to ensure that getContentLength is not called more than once
@@ -100,14 +102,18 @@ public class Downloader extends SwingWorker<Void, Void>{
             int k =0;
             try{
                 initDownload();
-                STATE = active;
-                setState(active);
+                if(!closed){
+                    STATE = active;
+                    setState(active);
+                }else{
+                    STATE = paused;
+                }
                 int len = data.length;
                 while(true){
                      if(STATE == paused){
                          if(k == 0){
                             setState(paused);
-                            k++;
+                            k = 1;
                          }
                          //doWait();
                          isPausedBefore = true;
@@ -116,6 +122,12 @@ public class Downloader extends SwingWorker<Void, Void>{
                             closed = false;
                          }
                          continue;
+                     }
+                     if(closed){
+                         closeStreams();
+                         setState(paused);
+                         STATE = paused;
+                         return null;
                      }
                      k = 0;
                     bytesRead = din.read(data, 0, len);
@@ -161,8 +173,8 @@ public class Downloader extends SwingWorker<Void, Void>{
         }
         
         public void doNotify(){
-            synchronized(this){
-            this.notify();
+            synchronized(taskPane){
+            taskPane.notify();
            }
         }
         
@@ -173,20 +185,26 @@ public class Downloader extends SwingWorker<Void, Void>{
             if(din != null){
                 try{
                     din.close();
+                    closed = true;
+                    setState(paused);
                 }catch(IOException ioe){setState(paused);}
             }
             if(out != null){
                 try{
                     out.close();
+                    closed = true;
+                    doNotify();
+                    setState(paused);
                 }catch(IOException ioe){setState(paused);}
             }
         }
     }
 
     void initDownload() throws MalformedURLException, IOException{
+        setState(4);
         try{
             connection = new URL(url);
-            fileConnection = new File(AppProperties.curDirectory+title);
+            fileConnection = new File(path+title);
             if(!fileConnection.exists()){
                 fileConnection.createNewFile();
             }else{
@@ -206,6 +224,7 @@ public class Downloader extends SwingWorker<Void, Void>{
             urlConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36 OPR/29.0.1795.47");
             urlConn.setConnectTimeout(60000);
             responseCode = urlConn.getResponseCode();
+            closed = false;
             if(responseCode == HttpURLConnection.HTTP_MOVED_TEMP){
                 redirectUrl = urlConn.getHeaderField("Location");
                 connection = new URL(redirectUrl);
@@ -216,20 +235,28 @@ public class Downloader extends SwingWorker<Void, Void>{
             if(!isPausedBefore){
                 fileSize = urlConn.getContentLength();
                 setFileSize(fileSize);
-                }
+            }
             din = new BufferedInputStream(urlConn.getInputStream());
             data = new byte[2048];
             downloadInited = true;
-            DownloadRecords.saveDownload(title, url, path, id, resolution, time, fileSize, downloaded);
+            if(!isPausedBefore){
+                DownloadRecords.saveDownload(title, url, path, id, resolution, time, fileSize, downloaded);
+            }
         }catch(UnknownHostException unke){
             STATE = paused;
-            setState(paused);
+            closeStreams();
+            System.out.println("Resume");
+            closed = true;
+//            setException(unke.toString()+":\nPlease check your internet connection and try again.");
+        }catch(IOException ioe){
+            STATE = paused;
             closeStreams();
             closed = true;
-            setException(unke.toString()+":\nPlease check your internet connection and try again.");
-        }catch(IOException ioe){
         }catch(SecurityException se){
-        setException(se.toString());
+            STATE = paused;
+            closeStreams();
+            closed = true;
+//        setException(se.toString());
         }
             if(responseCode == 403){
                 setRetry(true);
@@ -245,5 +272,9 @@ public class Downloader extends SwingWorker<Void, Void>{
         }catch(ExecutionException ee){
             
         }
+    }
+    
+    public void setDownloadPane(DownloadTaskPane taskPane){
+        this.taskPane = taskPane;
     }
 }
